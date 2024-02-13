@@ -55,6 +55,45 @@ const deleteUser = (id, callback) => {
 };
 
 const updateUser = (user, callback) => {
+  // Check for uniqueness in username and email
+  pool.query(
+    "SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ?",
+    [user.username, user.email, user.userId],
+    (error, checkResults) => {
+      if (error) {
+        callback(error, null);
+      } else if (checkResults.length > 0) {
+        
+        callback("Username or email is already in use", null);
+      } else {
+        // If username and email are unique, proceed with the update
+        const query =
+          "UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?";
+        const values = [user.username, user.email, user.role, user.userId];
+
+        pool.query(query, values, (error, updateResults) => {
+          if (error) {
+            callback(error, null);
+          } else {
+            // Retrieve the updated user data after the update
+            pool.query(
+              "SELECT * FROM users WHERE id = ?",
+              [user.userId],
+              (error, selectResults) => {
+                callback(error, selectResults[0]);
+              }
+            );
+          }
+        });
+      }
+    }
+  );
+};
+
+
+const addUser = (user, callback) => {
+  const userId = uuidv4();
+
   // Check if the email or username is already in use
   pool.query(
     "SELECT * FROM users WHERE email = ? OR username = ?",
@@ -72,27 +111,54 @@ const updateUser = (user, callback) => {
         );
 
         const errors = {};
-        if (isEmailTaken || isUsernameTaken) {
+        if (isEmailTaken) {
           errors.email = "Email is already taken";
-          const query =
-            "UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?";
-          const values = [user.username, user.email, user.role, user.userId];
-
-          pool.query(query, values, (error, results) => {
-            if (error) {
-              callback(error, null);
-            } else {
-              pool.query(
-                "SELECT * FROM users WHERE id = ?",
-                [user.userId],
-                (error, selectResults) => {
-                  callback(error, selectResults[0]);
-                }
-              );
-            }
-          });
         }
+        if (isUsernameTaken) {
+          errors.username = "Username is already taken";
+        }
+
+        return callback(null, { errors });
       }
+
+      bcrypt.hash("123456", 10, (hashError, hashedPassword) => {
+        if (hashError) {
+          return callback(hashError, null);
+        }
+
+        // User does not exist, proceed with registration
+        let query = "";
+        let values = [];
+        if (user.role.trim() === "") {
+          query =
+            "INSERT INTO users (id, username, email, password) VALUES (?, ?, ?, ?)";
+          values = [userId, user.username, user.email, hashedPassword];
+        } else {
+          query =
+            "INSERT INTO users (id, username, email, password, role) VALUES (?, ?, ?, ?, ?)";
+          values = [
+            userId,
+            user.username,
+            user.email,
+            hashedPassword,
+            user.role,
+          ];
+        }
+
+        pool.query(query, values, (error, results) => {
+          if (error) {
+            callback(error, null);
+          } else {
+            pool.query(
+              "SELECT * FROM users WHERE id = ?",
+              [userId],
+              (error, selectResults) => {
+                callback(error, selectResults[0]);
+              }
+            );
+          }
+        });
+      });
     }
   );
 };
@@ -382,10 +448,9 @@ const addProfile = (userData, profileData, callback) => {
 };
 
 const getUserProfile = (userId, callback) => {
-  const query = `SELECT u.id, u.username, u.email, u.password, u.role, p.fullname, p.dob, p.gender, p.country, p.city, p.phone_number, pi.url, p.created_at, p.updated_at
+  const query = `SELECT u.id, u.username, u.email, u.password, u.role, p.fullname, p.dob, p.gender, p.country, p.city, p.phone_number, p.created_at, p.updated_at
   FROM profiles p
   JOIN users u ON p.user_id = u.id
-  JOIN profile_images pi ON p.user_id = pi.user_id
   WHERE p.user_id = ?;`;
 
   pool.query(query, [userId], (error, results) => {
@@ -403,4 +468,5 @@ module.exports = {
   getUserProfile,
   updateUser,
   deleteUser,
+  addUser,
 };

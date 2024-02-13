@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
+const path = require('path');
 const authRoutes = require("./routes/auth");
 
 const app = express();
@@ -8,6 +9,8 @@ const port = process.env.PORT || 3002;
 // const host = "0.0.0.0";
 const host = "localhost";
 
+
+app.use('/dist', express.static(path.join(__dirname, 'dist')));
 app.use(express.json());
 app.use(cors());
 app.use(session({

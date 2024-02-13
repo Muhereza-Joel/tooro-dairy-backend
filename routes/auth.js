@@ -11,14 +11,15 @@ const {
   saveProfilePhoto,
   getProfilePhoto,
   updateUser,
-  deleteUser
+  deleteUser,
+  addUser,
 } = require("../mysql/queries/authQueries");
 const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = "uploads/images"; // Specify your upload directory
+    const uploadDir = "dist/images"; // Specify your upload directory
     fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
@@ -32,7 +33,7 @@ const upload = multer({ storage: storage });
 
 router.post("/change-avator", upload.single("avatar"), (req, res) => {
   try {
-    const baseUrl = "http://localhost:3001/uploads/images/";
+    const baseUrl = "http://localhost:3002/dist/images/";
     const imageUrl = baseUrl + req.file.filename;
 
     const userId = req.body.userId;
@@ -75,6 +76,26 @@ router.get("/profile/:userId", (req, res) => {
   }
 });
 
+router.post("/user", (req, res) => {
+  try {
+    const username = req.body.username;
+    const formattedUsername = username.toLowerCase().replace(/\s+/g, "-");
+    const user = {
+      username: formattedUsername,
+      email: req.body.email,
+      role: req.body.role,
+    };
+    addUser(user, (error, result) => {
+      if (error) {
+        throw error;
+      }
+      res.json(result);
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 router.put("/user", (req, res) => {
   try {
     const username = req.body.username;
@@ -83,14 +104,15 @@ router.put("/user", (req, res) => {
       userId: req.body.id,
       username: formattedUsername,
       email: req.body.email,
-      role: req.body.role
+      role: req.body.role,
     };
 
     updateUser(userData, (error, results) => {
       if (error) {
-        throw error;
+        res.status(500).json({ errors: error });
+      } else {
+        res.json(results);
       }
-      res.json(results);
     });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -99,14 +121,13 @@ router.put("/user", (req, res) => {
 
 router.delete("/user/:id", (req, res) => {
   const id = req.params.id;
-  deleteUser(id, (error, result) =>{
+  deleteUser(id, (error, result) => {
     if (error) {
       throw error;
     }
     res.json(result);
-  })
-
-})
+  });
+});
 
 router.put("/profile", (req, res) => {
   try {
@@ -135,7 +156,7 @@ router.put("/profile", (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error Occured" });
   }
 });
 

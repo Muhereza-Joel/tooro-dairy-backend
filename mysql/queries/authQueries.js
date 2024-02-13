@@ -3,9 +3,12 @@ const { v4: uuidv4 } = require("uuid");
 const bcrypt = require("bcrypt");
 
 const getAllUsers = (callback) => {
-  pool.query("SELECT * FROM users ORDER BY users.created_at DESC", (error, results) => {
-    callback(error, results);
-  });
+  pool.query(
+    "SELECT * FROM users ORDER BY users.created_at DESC",
+    (error, results) => {
+      callback(error, results);
+    }
+  );
 };
 
 const loginUser = (identifier, password, callback) => {
@@ -46,64 +49,53 @@ const deleteUser = (id, callback) => {
     if (error) {
       callback(error, null);
     } else {
-      callback(null, id)
+      callback(null, id);
     }
-  })
-}
+  });
+};
 
 const updateUser = (user, callback) => {
-    // Check if the email or username is already in use
-    pool.query(
-      "SELECT * FROM users WHERE email = ? OR username = ?",
-      [user.email, user.username],
-      (queryError, existingUser) => {
-        if (queryError) {
-          return callback(queryError, null);
-        }
-  
-        if (existingUser.length > 0) {
-          // User with the same email or username already exists
-          const isEmailTaken = existingUser.some((u) => u.email === user.email);
-          const isUsernameTaken = existingUser.some(
-            (u) => u.username === user.username
-          );
-  
-          const errors = {};
-          if (isEmailTaken) {
-            errors.email = "Email is already taken";
-          }
-          if (isUsernameTaken) {
-            errors.username = "Username is already taken";
-          }
-  
-          return callback(null, { errors });
-        }
-  
-        //user does not exist, proceed with update.
-        const query =
-        "UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?";
-      const values = [user.username, user.email, user.role, user.userId];
-  
-      pool.query(query, values, (error, results) => {
-        if (error) {
-          callback(error, null);
-        } else {
-          pool.query(
-            "SELECT * FROM users WHERE id = ?",
-            [user.userId],
-            (error, selectResults) => {
-              callback(error, selectResults[0]);
-            }
-          );
-        }
-      });
-       
+  // Check if the email or username is already in use
+  pool.query(
+    "SELECT * FROM users WHERE email = ? OR username = ?",
+    [user.email, user.username],
+    (queryError, existingUser) => {
+      if (queryError) {
+        return callback(queryError, null);
       }
-    );
- 
-   
-  };
 
+      if (existingUser.length > 0) {
+        // User with the same email or username already exists
+        const isEmailTaken = existingUser.some((u) => u.email === user.email);
+        const isUsernameTaken = existingUser.some(
+          (u) => u.username === user.username
+        );
+
+        const errors = {};
+        if (isEmailTaken || isUsernameTaken) {
+          errors.email = "Email is already taken";
+          const query =
+            "UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?";
+          const values = [user.username, user.email, user.role, user.userId];
+
+          pool.query(query, values, (error, results) => {
+            if (error) {
+              callback(error, null);
+            } else {
+              pool.query(
+                "SELECT * FROM users WHERE id = ?",
+                [user.userId],
+                (error, selectResults) => {
+                  callback(error, selectResults[0]);
+                }
+              );
+            }
+          });
+        }
+      }
+    }
+  );
+};
 
 const registerUser = (user, callback) => {
   const userId = uuidv4();
@@ -410,5 +402,5 @@ module.exports = {
   addProfile,
   getUserProfile,
   updateUser,
-  deleteUser
+  deleteUser,
 };

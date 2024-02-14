@@ -3,6 +3,7 @@ const cors = require("cors");
 const session = require("express-session");
 const path = require('path');
 const authRoutes = require("./routes/auth");
+const stockRoutes = require("./routes/stock");
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -21,6 +22,7 @@ app.use(session({
 }));
 
 app.use('/tdmis/api/v1/auth', authRoutes);
+app.use('/tdmis/api/v1/stock', stockRoutes);
 
 app.listen(port, host, () => {
   console.log(`Server is running on http://${host}:${port}`);

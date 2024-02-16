@@ -448,15 +448,28 @@ const addProfile = (userData, profileData, callback) => {
 };
 
 const getUserProfile = (userId, callback) => {
-  const query = `SELECT u.id, u.username, u.email, u.password, u.role, p.fullname, p.dob, p.gender, p.country, p.city, p.phone_number, p.created_at, p.updated_at
-  FROM profiles p
-  JOIN users u ON p.user_id = u.id
-  WHERE p.user_id = ?;`;
+  const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId);
+
+  let query;
+  if (isUUID) {
+    query = `SELECT u.id, u.username, u.email, u.password, u.role, p.fullname, p.dob, p.gender, p.country, p.city, p.phone_number, pi.url, p.created_at, p.updated_at
+      FROM profiles p
+      JOIN users u ON p.user_id = u.id
+      JOIN profile_images pi ON p.user_id = pi.user_id
+      WHERE u.id = ?;`;
+  } else {
+    query = `SELECT u.id, u.username, u.email, u.password, u.role, p.fullname, p.dob, p.gender, p.country, p.city, p.phone_number, pi.url, p.created_at, p.updated_at
+      FROM profiles p
+      JOIN users u ON p.user_id = u.id
+      JOIN profile_images pi ON p.user_id = pi.user_id
+      WHERE u.username = ?;`;
+  }
 
   pool.query(query, [userId], (error, results) => {
     callback(error, results);
   });
 };
+
 
 module.exports = {
   registerUser,

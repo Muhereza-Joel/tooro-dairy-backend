@@ -64,8 +64,32 @@ router.get("/get-avator/:userId", (req, res) => {
 
 router.get("/profile/:userId", (req, res) => {
   try {
-    const { userId } = req.params;
+    let userId = req.params.userId || req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID or username is required" });
+    }
+
     getUserProfile(userId, (error, results) => {
+      if (error) {
+        throw error;
+      }
+      res.json(results);
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.get("/profile", (req, res) => {
+  try {
+    let username = req.query.username;
+
+    if (!username) {
+      return res.status(400).json({ error: "User ID or username is required" });
+    }
+
+    getUserProfile(username, (error, results) => {
       if (error) {
         throw error;
       }

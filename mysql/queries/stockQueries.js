@@ -63,9 +63,13 @@ const getProduct = (id, callback) => {
 };
 
 const getProducts = (callback) => {
-  pool.query("SELECT * FROM products ORDER BY products.created_at DESC", [], (error, selectResults) => {
-    callback(error, selectResults);
-  });
+  pool.query(
+    "SELECT * FROM products ORDER BY products.created_at DESC",
+    [],
+    (error, selectResults) => {
+      callback(error, selectResults);
+    }
+  );
 };
 
 const deleteProduct = (id, callback) => {
@@ -73,7 +77,6 @@ const deleteProduct = (id, callback) => {
     callback(error, id);
   });
 };
-
 
 const addCollection = (collection, callback) => {
   const {
@@ -105,54 +108,74 @@ const addCollection = (collection, callback) => {
       // Update stock in products table
       const updateStockQuery = `UPDATE products SET stock = stock + ? WHERE id = ?`;
 
-      connection.query(updateStockQuery, [quantity, productId], (updateStockErr, updateStockResult) => {
-        if (updateStockErr) {
-          connection.rollback(() => {
-            connection.release();
-            callback(updateStockErr);
-          });
-          return;
-        }
+      connection.query(
+        updateStockQuery,
+        [quantity, productId],
+        (updateStockErr, updateStockResult) => {
+          if (updateStockErr) {
+            connection.rollback(() => {
+              connection.release();
+              callback(updateStockErr);
+            });
+            return;
+          }
 
-        // Insert collection record in the stock table
-        const insertCollectionQuery = `
+          // Insert collection record in the stock table
+          const insertCollectionQuery = `
           INSERT INTO stock (id, stock_plan, user_id, product_id, quantity, unit_price, amount_paid, balance, total, status)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        connection.query(
-          insertCollectionQuery,
-          [collectionId, stockPlan, userId, productId, quantity, unitPrice, amountPayed, balance, total, payed],
-          (insertCollectionErr, insertCollectionResult) => {
-            if (insertCollectionErr) {
-              connection.rollback(() => {
-                connection.release();
-                callback(insertCollectionErr);
-              });
-              return;
-            }
-
-            connection.commit((commitErr) => {
-              if (commitErr) {
+          connection.query(
+            insertCollectionQuery,
+            [
+              collectionId,
+              stockPlan,
+              userId,
+              productId,
+              quantity,
+              unitPrice,
+              amountPayed,
+              balance,
+              total,
+              payed,
+            ],
+            (insertCollectionErr, insertCollectionResult) => {
+              if (insertCollectionErr) {
                 connection.rollback(() => {
                   connection.release();
-                  callback(commitErr);
+                  callback(insertCollectionErr);
                 });
-              } else {
-                connection.release();
-                callback(null, 'Collection added successfully');
+                return;
               }
-            });
-          }
-        );
-      });
+
+              connection.commit((commitErr) => {
+                if (commitErr) {
+                  connection.rollback(() => {
+                    connection.release();
+                    callback(commitErr);
+                  });
+                } else {
+                  connection.release();
+                  callback(null, "Collection added successfully");
+                }
+              });
+            }
+          );
+        }
+      );
     });
   });
 };
 
-const getCollections = async (callback) => {
+const getCollections = (callback) => {
   try {
-    const query = 'SELECT * FROM stock ORDER BY created_at DESC';
+    const query = `
+    SELECT s.id, products.buying_price, products.product_name, p.username, pi.url, s.stock_plan, s.amount_paid, s.quantity, s.balance, s.status, s.total, s.created_at, s.updated_at FROM stock s 
+    JOIN products ON products.id = s.product_id
+    JOIN profiles p ON s.user_id = p.user_id 
+    JOIN profile_images pi ON pi.user_id = p.user_id ORDER BY s.created_at DESC
+    `;
     pool.query(query, [], (error, results) => {
       callback(error, results);
     });
@@ -175,95 +198,114 @@ const updateCollection = (collectionId, updatedFields, callback) => {
         return;
       }
 
-      
-
-      const selectStockQuery = 'SELECT product_id, quantity FROM stock WHERE id = ?';
-      connection.query(selectStockQuery, [collectionId], (selectStockError, stockResults) => {
-        if (selectStockError) {
-          connection.rollback();
-          connection.release();
-          callback(selectStockError, null);
-          return;
-        }
-        
-        if (stockResults.length === 0) {
-          connection.rollback();
-          connection.release();
-          callback(new Error('Stock not found'));
-          return;
-        }
-
-        const { product_id, quantity } = stockResults[0];
-
-
-        // Update the products table by subtracting the existing quantity
-        const updateProductsQuery = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-        connection.query(updateProductsQuery, [quantity, product_id], (updateProductsError) => {
-          if (updateProductsError) {
+      const selectStockQuery =
+        "SELECT product_id, quantity FROM stock WHERE id = ?";
+      connection.query(
+        selectStockQuery,
+        [collectionId],
+        (selectStockError, stockResults) => {
+          if (selectStockError) {
             connection.rollback();
             connection.release();
-            callback(updateProductsError, null);
-            console.log("at update stock");
+            callback(selectStockError, null);
             return;
           }
 
-          // Begin a new transaction to add the new quantity
-          connection.beginTransaction((newTransactionError) => {
-            if (newTransactionError) {
-              connection.rollback();
-              connection.release();
-              callback(newTransactionError, null);
-              return;
-            }
+          if (stockResults.length === 0) {
+            connection.rollback();
+            connection.release();
+            callback(new Error("Stock not found"));
+            return;
+          }
 
-            // Add the new quantity to the products table
-            const addNewQuantityQuery = 'UPDATE products SET stock = stock + ? WHERE id = ?';
-            connection.query(addNewQuantityQuery, [updatedFields.quantity, product_id], (addNewQuantityError) => {
-              if (addNewQuantityError) {
+          const { product_id, quantity } = stockResults[0];
+
+          // Update the products table by subtracting the existing quantity
+          const updateProductsQuery =
+            "UPDATE products SET stock = stock - ? WHERE id = ?";
+          connection.query(
+            updateProductsQuery,
+            [quantity, product_id],
+            (updateProductsError) => {
+              if (updateProductsError) {
                 connection.rollback();
                 connection.release();
-                callback(addNewQuantityError, null);
+                callback(updateProductsError, null);
+                console.log("at update stock");
                 return;
               }
 
-              // Commit the new transaction
-              connection.commit((commitError) => {
-                if (commitError) {
+              // Begin a new transaction to add the new quantity
+              connection.beginTransaction((newTransactionError) => {
+                if (newTransactionError) {
                   connection.rollback();
                   connection.release();
-                  callback(commitError, null);
-                } else {
-                  // Continue with updating other details in the stock table
-                  const updateStockQuery = 'UPDATE stock SET ? WHERE id = ?';
-                  connection.query(updateStockQuery, [updatedFields, collectionId], (updateStockError) => {
-                    if (updateStockError) {
+                  callback(newTransactionError, null);
+                  return;
+                }
+
+                // Add the new quantity to the products table
+                const addNewQuantityQuery =
+                  "UPDATE products SET stock = stock + ? WHERE id = ?";
+                connection.query(
+                  addNewQuantityQuery,
+                  [updatedFields.quantity, product_id],
+                  (addNewQuantityError) => {
+                    if (addNewQuantityError) {
                       connection.rollback();
                       connection.release();
-                      callback(updateStockError);
-                    } else {
-                      // Commit the main transaction
-                      connection.commit((mainCommitError) => {
-                        if (mainCommitError) {
-                          connection.rollback();
-                          connection.release();
-                          callback(mainCommitError, null);
-                        } else {
-                          connection.release();
-                          callback(null, 'Collection updated successfully');
-                        }
-                      });
+                      callback(addNewQuantityError, null);
+                      return;
                     }
-                  });
-                }
+
+                    // Commit the new transaction
+                    connection.commit((commitError) => {
+                      if (commitError) {
+                        connection.rollback();
+                        connection.release();
+                        callback(commitError, null);
+                      } else {
+                        // Continue with updating other details in the stock table
+                        const updateStockQuery =
+                          "UPDATE stock SET ? WHERE id = ?";
+                        connection.query(
+                          updateStockQuery,
+                          [updatedFields, collectionId],
+                          (updateStockError) => {
+                            if (updateStockError) {
+                              connection.rollback();
+                              connection.release();
+                              callback(updateStockError);
+                            } else {
+                              // Commit the main transaction
+                              connection.commit((mainCommitError) => {
+                                if (mainCommitError) {
+                                  connection.rollback();
+                                  connection.release();
+                                  callback(mainCommitError, null);
+                                } else {
+                                  connection.release();
+                                  callback(
+                                    null,
+                                    "Collection updated successfully"
+                                  );
+                                }
+                              });
+                            }
+                          }
+                        );
+                      }
+                    });
+                  }
+                );
               });
-            });
-          });
-        });
-      });
+            }
+          );
+        }
+      );
     });
   });
 };
-
 
 const deleteCollection = (collectionId, callback) => {
   pool.getConnection((getConnectionError, connection) => {
@@ -279,72 +321,79 @@ const deleteCollection = (collectionId, callback) => {
         return;
       }
 
-      const selectStockQuery = 'SELECT product_id, quantity FROM stock WHERE id = ? FOR UPDATE';
-      connection.query(selectStockQuery, [collectionId], (selectStockError, stockResults) => {
-        if (selectStockError) {
-          connection.rollback();
-          connection.release();
-          callback(selectStockError);
-          return;
-        }
-
-        if (stockResults.length === 0) {
-          connection.rollback();
-          connection.release();
-          callback(new Error('Stock not found'));
-          return;
-        }
-
-        const { product_id, quantity } = stockResults[0];
-
-        const updateProductsQuery = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-        connection.query(updateProductsQuery, [quantity, product_id], (updateProductsError) => {
-          if (updateProductsError) {
+      const selectStockQuery =
+        "SELECT product_id, quantity FROM stock WHERE id = ? FOR UPDATE";
+      connection.query(
+        selectStockQuery,
+        [collectionId],
+        (selectStockError, stockResults) => {
+          if (selectStockError) {
             connection.rollback();
             connection.release();
-            callback(updateProductsError);
+            callback(selectStockError);
             return;
           }
 
-          const deleteQuery = 'DELETE FROM stock WHERE id = ?';
-          connection.query(deleteQuery, [collectionId], (deleteError) => {
-            if (deleteError) {
-              connection.rollback();
-              connection.release();
-              callback(deleteError);
-              return;
-            }
+          if (stockResults.length === 0) {
+            connection.rollback();
+            connection.release();
+            callback(new Error("Stock not found"));
+            return;
+          }
 
-            connection.commit((commitError) => {
-              if (commitError) {
+          const { product_id, quantity } = stockResults[0];
+
+          const updateProductsQuery =
+            "UPDATE products SET stock = stock - ? WHERE id = ?";
+          connection.query(
+            updateProductsQuery,
+            [quantity, product_id],
+            (updateProductsError) => {
+              if (updateProductsError) {
                 connection.rollback();
                 connection.release();
-                callback(commitError);
-              } else {
-                connection.release();
-                callback(null, 'Collection deleted successfully');
+                callback(updateProductsError);
+                return;
               }
-            });
-          });
-        });
-      });
+
+              const deleteQuery = "DELETE FROM stock WHERE id = ?";
+              connection.query(deleteQuery, [collectionId], (deleteError) => {
+                if (deleteError) {
+                  connection.rollback();
+                  connection.release();
+                  callback(deleteError);
+                  return;
+                }
+
+                connection.commit((commitError) => {
+                  if (commitError) {
+                    connection.rollback();
+                    connection.release();
+                    callback(commitError);
+                  } else {
+                    connection.release();
+                    callback(null, "Collection deleted successfully");
+                  }
+                });
+              });
+            }
+          );
+        }
+      );
     });
   });
 };
 
-
 const getCollectionDetails = async (collectionId, callback) => {
   try {
-    const query = 'SELECT * FROM stock WHERE id = ?';
+    const query = "SELECT * FROM stock WHERE id = ?";
     pool.query(query, [collectionId], (error, result) => {
-
       if (result.length > 0) {
         callback(error, result[0]);
       } else {
-        callback({ message: 'Collection not found' });
+        callback({ message: "Collection not found" });
       }
     });
-    
   } catch (error) {
     callback(error);
   }

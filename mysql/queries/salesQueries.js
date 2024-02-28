@@ -46,7 +46,8 @@ const getSales = (callback) => {
                   JOIN sales s 
                   ON pr.user_id = s.user_id
                   JOIN products p 
-                  ON s.product_id = p.id`;
+                  ON s.product_id = p.id
+                  ORDER BY s.created_at DESC`;
 
   pool.query(query, [], (error, results) => {
     if(error){

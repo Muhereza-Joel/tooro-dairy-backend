@@ -41,12 +41,14 @@ const getSaleSettingsDetails = (recordId, callback) => {
 };
 
 const getSales = (callback) => {
-  const query = `SELECT s.id, pr.fullname, pr.phone_number,  p.product_name, s.sales_plan, s.quantity, s.unit_price, s.tax_amount, s.discount_amount, s.total, s.created_at, s.updated_at
+  const query = `SELECT s.id, pr.fullname, pi.url, pr.phone_number,  p.product_name, s.sales_plan, s.quantity, s.unit_price, s.tax_amount, s.discount_amount, s.total, s.created_at, s.updated_at
                   FROM profiles pr
+                  JOIN profile_images pi
+                  ON pr.user_id = pi.user_id
                   JOIN sales s 
                   ON pr.user_id = s.user_id
                   JOIN products p 
-                  ON s.product_id = p.id
+                  ON s.product_id = p.id 
                   ORDER BY s.created_at DESC`;
 
   pool.query(query, [], (error, results) => {

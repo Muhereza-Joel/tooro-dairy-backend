@@ -40,10 +40,61 @@ const getSaleSettingsDetails = (recordId, callback) => {
     })
 };
 
-const getSales = (callback) => {};
+const getSales = (callback) => {
+  const query = `SELECT s.id, pr.fullname, pr.phone_number,  p.product_name, s.sales_plan, s.quantity, s.unit_price, s.tax_amount, s.discount_amount, s.total, s.created_at, s.updated_at
+                  FROM profiles pr
+                  JOIN sales s 
+                  ON pr.user_id = s.user_id
+                  JOIN products p 
+                  ON s.product_id = p.id`;
 
+  pool.query(query, [], (error, results) => {
+    if(error){
+      callback(error, null)
+    } else {
+      callback(null, results);
+    }
+  })
+};
 
-const deleteSaleRecord = (recordId, callback) => {};
+const addSaleRecord = (saleRecord, callback) => {
+  const {
+    saleId,
+    productId,
+    salesPlan,
+    quantity,
+    unitPrice,
+    taxAmount,
+    discountAmount,
+    total,
+    userId,
+  } = saleRecord;
+
+  const values = [saleId, productId, salesPlan, quantity, unitPrice, taxAmount, discountAmount, total, userId];
+
+  const query = `INSERT INTO sales(id, product_id, sales_plan, quantity, unit_price, tax_amount, discount_amount, total, user_id)
+                  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  pool.query(query, values, (error, result) => {
+    if(error){
+      callback(error, null);
+    } else {
+      pool.query(
+        "SELECT * FROM sales WHERE id = ?",
+        [saleId],
+        (error, selectResults) => {
+          callback(error, selectResults[0]);
+        }
+      );
+    }
+  })                
+}
+
+const deleteSaleRecord = (recordId, callback) => {
+  pool.query("DELETE FROM sales WHERE id = ?", [recordId], (error, result) => {
+    callback(error, recordId);
+  });
+};
 
 const updateSaleRecord = (recordId, data, callback) => {};
 
@@ -54,4 +105,5 @@ module.exports = {
   getSales,
   updateSalesSettings,
   getSalesSettings,
+  addSaleRecord,
 };

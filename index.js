@@ -5,6 +5,7 @@ const path = require('path');
 const authRoutes = require("./routes/auth");
 const stockRoutes = require("./routes/stock");
 const salesRoutes = require("./routes/sales");
+const salesReportsRoutes = require('./routes/salesReports');
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -25,6 +26,7 @@ app.use(session({
 app.use('/tdmis/api/v1/auth', authRoutes);
 app.use('/tdmis/api/v1/stock', stockRoutes);
 app.use('/tdmis/api/v1/sales', salesRoutes);
+app.use('/tdmis/api/v1/sales/reports', salesReportsRoutes)
 
 app.listen(port, host, () => {
   console.log(`Server is running on http://${host}:${port}`);

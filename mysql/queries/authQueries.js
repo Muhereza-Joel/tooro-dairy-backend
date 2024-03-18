@@ -386,17 +386,31 @@ const addProfile = (userData, profileData, callback) => {
                               });
                             }
 
-                            connection.commit((commitErr) => {
-                              if (commitErr) {
-                                return connection.rollback(() => {
+                            // Update profile_created in users table
+                            connection.query(
+                              "UPDATE users SET profile_created = true WHERE id = ?",
+                              [userData.userId],
+                              (updateProfileCreatedErr) => {
+                                if (updateProfileCreatedErr) {
+                                  return connection.rollback(() => {
+                                    connection.release();
+                                    callback(updateProfileCreatedErr, null);
+                                  });
+                                }
+
+                                connection.commit((commitErr) => {
+                                  if (commitErr) {
+                                    return connection.rollback(() => {
+                                      connection.release();
+                                      callback(commitErr, null);
+                                    });
+                                  }
+
                                   connection.release();
-                                  callback(commitErr, null);
+                                  callback(null, "Tables updated successfully");
                                 });
                               }
-
-                              connection.release();
-                              callback(null, "Tables updated successfully");
-                            });
+                            );
                           }
                         );
                       } else {
@@ -421,17 +435,31 @@ const addProfile = (userData, profileData, callback) => {
                               });
                             }
 
-                            connection.commit((commitErr) => {
-                              if (commitErr) {
-                                return connection.rollback(() => {
+                            // Update profile_created in users table
+                            connection.query(
+                              "UPDATE users SET profile_created = true WHERE id = ?",
+                              [userData.userId],
+                              (updateProfileCreatedErr) => {
+                                if (updateProfileCreatedErr) {
+                                  return connection.rollback(() => {
+                                    connection.release();
+                                    callback(updateProfileCreatedErr, null);
+                                  });
+                                }
+
+                                connection.commit((commitErr) => {
+                                  if (commitErr) {
+                                    return connection.rollback(() => {
+                                      connection.release();
+                                      callback(commitErr, null);
+                                    });
+                                  }
+
                                   connection.release();
-                                  callback(commitErr, null);
+                                  callback(null, "Tables updated successfully");
                                 });
                               }
-
-                              connection.release();
-                              callback(null, "Tables updated successfully");
-                            });
+                            );
                           }
                         );
                       }
@@ -446,6 +474,7 @@ const addProfile = (userData, profileData, callback) => {
     });
   });
 };
+
 
 const getUserProfile = (userId, callback) => {
   const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId);

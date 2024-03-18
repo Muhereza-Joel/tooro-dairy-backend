@@ -204,6 +204,7 @@ router.post("/login", (req, res) => {
         email: user.email,
         id: user.id,
         role: user.role,
+        profileCreated: user.profile_created
       });
 
       req.session.user = {

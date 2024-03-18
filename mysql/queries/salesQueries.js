@@ -185,7 +185,7 @@ const addSubscription = (subscription, callback) => {
 
 
 const getUserSubscriptions = (recordId, callback) => {
-  const query = "SELECT * FROM subscriptions WHERE id = ?";
+  const query = "SELECT * FROM subscriptions WHERE user_id = ? AND active = 1";
   pool.query(query, [recordId], (error, result) => {
     if (error) {
       callback(error, null);

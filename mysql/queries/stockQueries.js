@@ -174,7 +174,7 @@ const getCollections = (callback) => {
     SELECT s.id, products.buying_price, products.product_name, p.username, pi.url, s.stock_plan, s.amount_paid, s.quantity, s.balance, s.status, s.total, s.created_at, s.updated_at FROM stock s 
     JOIN products ON products.id = s.product_id
     JOIN profiles p ON s.user_id = p.user_id 
-    JOIN profile_images pi ON pi.user_id = p.user_id ORDER BY s.created_at DESC
+    LEFT JOIN profile_images pi ON pi.user_id = p.user_id ORDER BY s.created_at DESC
     `;
     pool.query(query, [], (error, results) => {
       callback(error, results);

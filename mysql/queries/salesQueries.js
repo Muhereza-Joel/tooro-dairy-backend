@@ -43,7 +43,7 @@ const getSaleSettingsDetails = (recordId, callback) => {
 const getSales = (callback) => {
   const query = `SELECT s.id, pr.fullname, pi.url, pr.phone_number,  p.product_name, s.sales_plan, s.quantity, s.unit_price, s.tax_amount, s.discount_amount, s.total, s.created_at, s.updated_at
                   FROM profiles pr
-                  JOIN profile_images pi
+                  LEFT JOIN profile_images pi
                   ON pr.user_id = pi.user_id
                   JOIN sales s 
                   ON pr.user_id = s.user_id

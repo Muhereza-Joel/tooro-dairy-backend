@@ -52,6 +52,23 @@ const editProduct = (product, callback) => {
   });
 };
 
+const markCollectionAsPaid = (productId, callback) => {
+  const query = "UPDATE stock SET amount_paid = 0, balance = 0, status = 'paid' WHERE id = ?";
+  pool.query(query, [productId], (error, result) => {
+    if(error){
+      callback(error, null);
+    } else {
+      pool.query(
+        "SELECT * FROM stock WHERE id = ?",
+        [productId],
+        (error, selectResults) => {
+          callback(error, selectResults[0]);
+        }
+      );
+    }
+  })
+}
+
 const getProduct = (id, callback) => {
   pool.query(
     "SELECT * FROM products WHERE id = ?",
@@ -410,4 +427,5 @@ module.exports = {
   updateCollection,
   deleteCollection,
   getCollectionDetails,
+  markCollectionAsPaid
 };

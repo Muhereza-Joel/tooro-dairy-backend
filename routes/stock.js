@@ -13,6 +13,7 @@ const {
   getCollectionDetails,
   updateCollection,
   deleteCollection,
+  markCollectionAsPaid,
 } = require("../mysql/queries/stockQueries");
 
 router.post("/products", (req, res) => {
@@ -189,7 +190,7 @@ router.put("/collections/:collectionId", async (req, res) => {
       } else {
         res.json(result);
       }
-    })
+    });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -207,6 +208,21 @@ router.delete("/collections/:collectionId", async (req, res) => {
     });
   } catch (error) {
     await pool.rollback(); // Rollback the transaction on error
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.put("/collections/mark-as-paid/:collectionId", (req, res) => {
+  try {
+    const collectionId = req.params.collectionId;
+    markCollectionAsPaid(collectionId, (error, result) => {
+      if (error) {
+        res.status(500).json({ errors: error });
+      } else {
+        res.json(result);
+      }
+    });
+  } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

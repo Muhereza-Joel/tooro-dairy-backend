@@ -5,6 +5,7 @@ const path = require('path');
 const authRoutes = require("./routes/auth");
 const stockRoutes = require("./routes/stock");
 const salesRoutes = require("./routes/sales");
+const ordersRoutes = require("./routes/orders");
 const salesReportsRoutes = require('./routes/salesReports');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const metricsRoutes = require('./routes/metrics');
@@ -28,6 +29,7 @@ app.use(session({
 app.use('/tdmis/api/v1/auth', authRoutes);
 app.use('/tdmis/api/v1/stock', stockRoutes);
 app.use('/tdmis/api/v1/sales', salesRoutes);
+app.use('/tdmis/api/v1/orders', ordersRoutes);
 app.use('/tdmis/api/v1/sales/reports', salesReportsRoutes);
 app.use('/tdmis/api/v1/sales/subscriptions', subscriptionsRoutes);
 app.use('/tdmis/api/v1/metrics', metricsRoutes);

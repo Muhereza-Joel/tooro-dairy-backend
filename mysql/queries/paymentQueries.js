@@ -43,7 +43,61 @@ const addTransactionRecord = (transaction, callback) => {
 };
 
 
-const updateTransactionRecord = (transaction, callback) => {};
+const updateTransactionRecord = (transaction, callback) => {
+  const { status, payment_method, order_id } = transaction;
+
+  pool.getConnection((err, connection) => {
+    if (err) {
+      callback(err, null);
+      return;
+    }
+
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release();
+        callback(err, null);
+        return;
+      }
+
+      const updateTransactionQuery = `UPDATE transactions SET status = ?, payment_method = ? WHERE order_id = ?`;
+      const updateTransactionValues = [status, payment_method, order_id];
+
+      connection.query(updateTransactionQuery, updateTransactionValues, (error, result) => {
+        if (error) {
+          return connection.rollback(() => {
+            connection.release();
+            callback(error, null);
+          });
+        }
+
+        const updateOrderQuery = `UPDATE orders SET status = 'paid' WHERE id = ?`;
+        const updateOrderValues = [order_id];
+
+        connection.query(updateOrderQuery, updateOrderValues, (error, result) => {
+          if (error) {
+            return connection.rollback(() => {
+              connection.release();
+              callback(error, null);
+            });
+          }
+
+          connection.commit((err) => {
+            if (err) {
+              return connection.rollback(() => {
+                connection.release();
+                callback(err, null);
+              });
+            }
+
+            connection.release();
+            callback(null, { message: 'Transaction and order updated successfully' });
+          });
+        });
+      });
+    });
+  });
+};
+
 
 const deleteTransactionRecord = (transactionId, callback) => {};
 

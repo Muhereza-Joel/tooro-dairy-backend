@@ -51,22 +51,14 @@ router.post("/add", (req, res) => {
 router.put("/update", (req, res) => {
   try {
     const {
-      id,
-      currency,
-      amount,
       status,
-      reference_number,
       tracking_id,
       payment_method,
       order_id,
     } = req.body;
 
     const transaction = {
-      id: id,
-      currency: currency,
-      amount: amount,
       status: status,
-      reference_number: reference_number,
       tracking_id: tracking_id,
       payment_method: payment_method,
       order_id: order_id,

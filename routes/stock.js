@@ -10,6 +10,7 @@ const {
   editProduct,
   addCollection,
   getCollections,
+  getUserCollections,
   getCollectionDetails,
   updateCollection,
   deleteCollection,
@@ -152,6 +153,22 @@ router.post("/collections", (req, res) => {
 router.get("/collections", async (req, res) => {
   try {
     getCollections((error, collections) => {
+      if (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        res.json(collections);
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.get("/collections/user/:userId", async (req, res) => {
+  try {
+     userId = req.params.userId;
+
+    getUserCollections(userId, (error, collections) => {
       if (error) {
         res.status(500).json({ error: "Internal Server Error" });
       } else {

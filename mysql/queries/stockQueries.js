@@ -185,6 +185,25 @@ const addCollection = (collection, callback) => {
   });
 };
 
+
+const getUserCollections = (userId, callback) => {
+  try {
+    const query = `
+    SELECT s.id, products.buying_price, products.product_name, p.username, pi.url, s.stock_plan, s.amount_paid, s.quantity, s.balance, s.status, s.total, s.created_at, s.updated_at FROM stock s 
+    JOIN products ON products.id = s.product_id
+    JOIN profiles p ON s.user_id = p.user_id 
+    LEFT JOIN profile_images pi ON pi.user_id = p.user_id 
+    WHERE p.user_id = ?
+    ORDER BY s.created_at DESC
+    `;
+    pool.query(query, [userId], (error, results) => {
+      callback(error, results);
+    });
+  } catch (error) {
+    callback(error);
+  }
+};
+
 const getCollections = (callback) => {
   try {
     const query = `
@@ -424,6 +443,7 @@ module.exports = {
   deleteProduct,
   addCollection,
   getCollections,
+  getUserCollections,
   updateCollection,
   deleteCollection,
   getCollectionDetails,
